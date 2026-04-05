@@ -6,19 +6,43 @@ on:
   pull_request:
     branches: [ "main" ]
 
-# Економія хвилин: якщо запускається новий workflow, старий в цій же гілці зупиняється
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # Перша джоба - Перевірка коду
-  lint:
+  # 1. Джоба тестування (Matrix)
+  test-logic:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # СТРАТЕГІЯ МАТРИЦІ
+    strategy:
+      matrix:
+        # Запускаємо тест на трьох версіях Python одночасно
+        python-version: ["3.9", "3.10", "3.11"]
+        # Можна додати виключення (exclude), якщо наприклад 3.9 не підтримує якусь фічу
+        exclude:
+          - python-version: "3.9"
+            # Приклад: ми не хочемо тестувати 3.9 на певних умовах (залишимо порожнім для тесту)
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run static analysis
-        run: echo "Running linter... Done"
+      # Встановлюємо конкретну версію з матриці
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run App and Save Logs
+        run: |
+          python3 app.py > scan-report-${{ matrix.python-version }}.log
+          echo "Test for version ${{ matrix.python-version }} completed"
+
+      # ЗБЕРЕЖЕННЯ АРТЕФАКТІВ
+      - name: Upload Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-python-${{ matrix.python-version }}
+          path: scan-report-${{ matrix.python-version }}.log
+          retention-days: 1 # Економія місця в сховищі замовника
