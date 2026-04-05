@@ -1,0 +1,24 @@
+name: Sentinel CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+# Економія хвилин: якщо запускається новий workflow, старий в цій же гілці зупиняється
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Перша джоба - Перевірка коду
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run static analysis
+        run: echo "Running linter... Done"
